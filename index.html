@@ -21,13 +21,13 @@
       box-sizing: border-box;
       padding: 16px;
       background: white;
-      text-align: center;
       border-radius: 12px;
+      text-align: center;
       z-index: 1000;
     }
     button {
-      font-size: 18px;
       padding: 12px 20px;
+      font-size: 18px;
       margin-top: 10px;
     }
   </style>
@@ -35,8 +35,8 @@
 
 <body>
   <div id="panel">
-    <div id="message">最初に準備ボタンを押してね</div>
-    <button id="startButton">音声の準備</button>
+    <div id="message">犬のイラストを映してね</div>
+    <button id="playButton" hidden>音楽を再生</button>
   </div>
 
   <audio id="music" src="./music.mp3"
@@ -45,14 +45,11 @@
   <a-scene
     mindar-image="imageTargetSrc: ./targets.mind;"
     embedded
-    color-space="sRGB"
-    renderer="colorManagement: true"
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
 
     <a-camera position="0 0 0"
-      look-controls="enabled: false">
-    </a-camera>
+      look-controls="enabled: false"></a-camera>
 
     <a-entity id="target"
       mindar-image-target="targetIndex: 0">
@@ -63,64 +60,39 @@
     const music = document.querySelector("#music");
     const target = document.querySelector("#target");
     const message = document.querySelector("#message");
-    const button = document.querySelector("#startButton");
+    const button = document.querySelector("#playButton");
 
-    let ready = false;
-    let played = false;
+    let started = false;
 
-    button.addEventListener("click", async () => {
+    target.addEventListener("targetFound", async () => {
+      if (started) return;
+
+      message.textContent = "認識成功！";
+
       try {
-        // ユーザー操作で音声再生を許可
-        music.muted = true;
         await music.play();
-        music.pause();
-        music.currentTime = 0;
-        music.muted = false;
-
-        ready = true;
-        button.style.display = "none";
-        message.textContent =
-          "犬のイラストを映してね";
+        started = true;
+        message.textContent = "音楽再生中♪";
       } catch (error) {
-        music.muted = false;
-        message.textContent =
-          "音声の準備に失敗しました";
+        message.textContent = "再生ボタンを押してね";
+        button.hidden = false;
       }
     });
 
-    target.addEventListener("targetFound", async () => {
-      if (!ready) {
-        message.textContent =
-          "先に音声の準備を押してね";
-        return;
-      }
-      if (played) return;
-
+    button.addEventListener("click", async () => {
       try {
         await music.play();
-        played = true;
-        message.textContent = "認識成功！音楽再生中♪";
+        started = true;
+        button.hidden = true;
+        message.textContent = "音楽再生中♪";
       } catch (error) {
-        message.textContent =
-          "自動再生できませんでした";
-        button.style.display = "inline-block";
-        button.textContent = "音楽を再生";
-        button.onclick = async () => {
-          try {
-            await music.play();
-            played = true;
-            button.style.display = "none";
-            message.textContent = "音楽再生中♪";
-          } catch (e) {
-            message.textContent = "再生できません";
-          }
-        };
+        message.textContent = "再生エラー";
       }
     });
 
     music.addEventListener("ended", () => {
+      started = false;
       message.textContent = "再生終了！";
-      played = false;
     });
   </script>
 </body>
