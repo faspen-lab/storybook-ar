@@ -9,27 +9,38 @@
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
-  <title>犬の画像認識テスト</title>
+  <title>犬の音楽再生テスト</title>
 
   <style>
-    body { margin: 0; }
-    #message {
+    body { margin: 0; font-family: sans-serif; }
+    #panel {
       position: fixed;
       top: 20px;
       left: 5%;
       width: 90%;
-      padding: 12px 0;
+      box-sizing: border-box;
+      padding: 16px;
       background: white;
       text-align: center;
+      border-radius: 12px;
       z-index: 1000;
-      font-size: 20px;
-      border-radius: 10px;
+    }
+    button {
+      font-size: 18px;
+      padding: 12px 20px;
+      margin-top: 10px;
     }
   </style>
 </head>
 
 <body>
-  <div id="message">犬のイラストを映してね</div>
+  <div id="panel">
+    <div id="message">最初に準備ボタンを押してね</div>
+    <button id="startButton">音声の準備</button>
+  </div>
+
+  <audio id="music" src="./music.mp3"
+         preload="auto"></audio>
 
   <a-scene
     mindar-image="imageTargetSrc: ./targets.mind;"
@@ -39,27 +50,77 @@
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
 
-    <a-camera
-      position="0 0 0"
+    <a-camera position="0 0 0"
       look-controls="enabled: false">
     </a-camera>
 
-    <a-entity
-      id="target"
+    <a-entity id="target"
       mindar-image-target="targetIndex: 0">
     </a-entity>
   </a-scene>
 
   <script>
+    const music = document.querySelector("#music");
     const target = document.querySelector("#target");
     const message = document.querySelector("#message");
+    const button = document.querySelector("#startButton");
 
-    target.addEventListener("targetFound", () => {
-      message.textContent = "認識成功！";
+    let ready = false;
+    let played = false;
+
+    button.addEventListener("click", async () => {
+      try {
+        // ユーザー操作で音声再生を許可
+        music.muted = true;
+        await music.play();
+        music.pause();
+        music.currentTime = 0;
+        music.muted = false;
+
+        ready = true;
+        button.style.display = "none";
+        message.textContent =
+          "犬のイラストを映してね";
+      } catch (error) {
+        music.muted = false;
+        message.textContent =
+          "音声の準備に失敗しました";
+      }
     });
 
-    target.addEventListener("targetLost", () => {
-      message.textContent = "犬のイラストを映してね";
+    target.addEventListener("targetFound", async () => {
+      if (!ready) {
+        message.textContent =
+          "先に音声の準備を押してね";
+        return;
+      }
+      if (played) return;
+
+      try {
+        await music.play();
+        played = true;
+        message.textContent = "認識成功！音楽再生中♪";
+      } catch (error) {
+        message.textContent =
+          "自動再生できませんでした";
+        button.style.display = "inline-block";
+        button.textContent = "音楽を再生";
+        button.onclick = async () => {
+          try {
+            await music.play();
+            played = true;
+            button.style.display = "none";
+            message.textContent = "音楽再生中♪";
+          } catch (e) {
+            message.textContent = "再生できません";
+          }
+        };
+      }
+    });
+
+    music.addEventListener("ended", () => {
+      message.textContent = "再生終了！";
+      played = false;
     });
   </script>
 </body>
