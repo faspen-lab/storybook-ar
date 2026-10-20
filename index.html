@@ -12,34 +12,64 @@
   <title>犬の音楽再生テスト</title>
 
   <style>
-    body { margin: 0; font-family: sans-serif; }
+    body {
+      margin: 0;
+      font-family: sans-serif;
+    }
+
     #panel {
       position: fixed;
       top: 20px;
       left: 5%;
       width: 90%;
       box-sizing: border-box;
-      padding: 16px;
+      padding: 15px;
       background: white;
       border-radius: 12px;
       text-align: center;
       z-index: 1000;
     }
+
     button {
-      padding: 12px 20px;
-      font-size: 18px;
+      font-size: 16px;
+      padding: 12px;
+      margin: 5px;
+      border: none;
+      border-radius: 8px;
+      background: #e5e5e5;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+    }
+
+    #playButton {
+      background: #bde9d5;
+    }
+
+    #controls {
       margin-top: 10px;
     }
   </style>
 </head>
 
 <body>
+
   <div id="panel">
-    <div id="message">犬のイラストを映してね</div>
-    <button id="playButton" hidden>音楽を再生</button>
+    <div id="message">
+      犬のイラストを映してね
+    </div>
+
+    <div id="controls" hidden>
+      <button id="playButton">▶ 再生</button>
+      <button id="pauseButton">⏸ 一時停止</button>
+      <button id="stopButton">⏹ 停止</button>
+    </div>
   </div>
 
-  <audio id="music" src="./music.mp3"
+  <audio id="music"
+         src="./music.mp3"
          preload="auto"></audio>
 
   <a-scene
@@ -48,52 +78,78 @@
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
 
-    <a-camera position="0 0 0"
-      look-controls="enabled: false"></a-camera>
+    <a-camera
+      position="0 0 0"
+      look-controls="enabled: false">
+    </a-camera>
 
-    <a-entity id="target"
+    <a-entity
+      id="target"
       mindar-image-target="targetIndex: 0">
     </a-entity>
+
   </a-scene>
 
   <script>
     const music = document.querySelector("#music");
     const target = document.querySelector("#target");
     const message = document.querySelector("#message");
-    const button = document.querySelector("#playButton");
+    const controls = document.querySelector("#controls");
 
-    let started = false;
+    const playButton = document.querySelector("#playButton");
+    const pauseButton = document.querySelector("#pauseButton");
+    const stopButton = document.querySelector("#stopButton");
 
-    target.addEventListener("targetFound", async () => {
-      if (started) return;
+    let recognized = false;
 
-      message.textContent = "認識成功！";
+    function updateButtons() {
+      playButton.disabled = !music.paused;
+      pauseButton.disabled = music.paused;
+    }
 
+    async function playMusic() {
       try {
         await music.play();
-        started = true;
         message.textContent = "音楽再生中♪";
       } catch (error) {
         message.textContent = "再生ボタンを押してね";
-        button.hidden = false;
       }
+      updateButtons();
+    }
+
+    target.addEventListener("targetFound", () => {
+      if (recognized) return;
+
+      recognized = true;
+      controls.hidden = false;
+      message.textContent = "認識成功！";
+      playMusic();
     });
 
-    button.addEventListener("click", async () => {
-      try {
-        await music.play();
-        started = true;
-        button.hidden = true;
-        message.textContent = "音楽再生中♪";
-      } catch (error) {
-        message.textContent = "再生エラー";
-      }
+    playButton.addEventListener("click", () => {
+      playMusic();
+    });
+
+    pauseButton.addEventListener("click", () => {
+      music.pause();
+      message.textContent = "一時停止中";
+      updateButtons();
+    });
+
+    stopButton.addEventListener("click", () => {
+      music.pause();
+      music.currentTime = 0;
+      message.textContent = "停止しました";
+      updateButtons();
     });
 
     music.addEventListener("ended", () => {
-      started = false;
       message.textContent = "再生終了！";
+      updateButtons();
     });
+
+    updateButtons();
   </script>
+
 </body>
 </html>
